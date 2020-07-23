@@ -22,13 +22,13 @@ import io.seata.core.protocol.RpcMessage;
  *
  * @author slievrly
  */
+@Deprecated
 public interface ClientMessageListener {
     /**
      * On message.
      *
      * @param request       the msg id
      * @param serverAddress the server address
-     * @param sender        the sender
      */
-    void onMessage(RpcMessage request, String serverAddress, ClientMessageSender sender);
+    void onMessage(RpcMessage request, String serverAddress);
 }

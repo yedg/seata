@@ -21,9 +21,9 @@ import io.seata.core.exception.TransactionException;
 import io.seata.core.model.BranchStatus;
 import io.seata.core.model.BranchType;
 import io.seata.core.model.GlobalStatus;
-import io.seata.core.rpc.netty.RmRpcClient;
-import io.seata.core.rpc.netty.ShutdownHook;
-import io.seata.core.rpc.netty.TmRpcClient;
+import io.seata.core.rpc.netty.RmNettyRemotingClient;
+import io.seata.core.rpc.ShutdownHook;
+import io.seata.core.rpc.netty.TmNettyRemotingClient;
 import io.seata.rm.DefaultResourceManager;
 import io.seata.rm.RMClient;
 import io.seata.saga.rm.SagaResource;
@@ -53,9 +53,6 @@ public class DefaultSagaTransactionalTemplate
     implements SagaTransactionalTemplate, ApplicationContextAware, DisposableBean, InitializingBean {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSagaTransactionalTemplate.class);
-
-    private static final int DEFAULT_TRANS_OPER_TIMEOUT = 60000 * 10;
-    private int timeout = DEFAULT_TRANS_OPER_TIMEOUT;
 
     private String applicationId;
     private String txServiceGroup;
@@ -249,22 +246,13 @@ public class DefaultSagaTransactionalTemplate
             ((ConfigurableApplicationContext)applicationContext).registerShutdownHook();
             ShutdownHook.removeRuntimeShutdownHook();
         }
-        ShutdownHook.getInstance().addDisposable(TmRpcClient.getInstance(applicationId, txServiceGroup));
-        ShutdownHook.getInstance().addDisposable(RmRpcClient.getInstance(applicationId, txServiceGroup));
+        ShutdownHook.getInstance().addDisposable(TmNettyRemotingClient.getInstance(applicationId, txServiceGroup));
+        ShutdownHook.getInstance().addDisposable(RmNettyRemotingClient.getInstance(applicationId, txServiceGroup));
     }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
-    }
-
-    @Override
-    public int getTimeout() {
-        return timeout;
-    }
-
-    public void setTimeout(int timeout) {
-        this.timeout = timeout;
     }
 
     @Override

@@ -30,10 +30,6 @@ import io.seata.tm.api.transaction.TransactionInfo;
  */
 public class MockSagaTransactionTemplate implements SagaTransactionalTemplate {
 
-    static {
-        UUIDGenerator.init(0);
-    }
-
     @Override
     public void commitTransaction(GlobalTransaction tx) throws ExecutionException {
 
@@ -74,11 +70,6 @@ public class MockSagaTransactionTemplate implements SagaTransactionalTemplate {
     @Override
     public void branchReport(String xid, long branchId, BranchStatus status, String applicationData) throws TransactionException {
         
-    }
-
-    @Override
-    public int getTimeout() {
-        return 60000;
     }
 
     @Override

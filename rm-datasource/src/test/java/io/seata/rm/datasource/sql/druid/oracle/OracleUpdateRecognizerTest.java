@@ -19,16 +19,17 @@ import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
-import com.alibaba.druid.sql.dialect.oracle.ast.expr.OracleArgumentExpr;
 import com.alibaba.druid.sql.dialect.oracle.ast.expr.OracleCursorExpr;
-import io.seata.rm.datasource.ParametersHolder;
-import io.seata.rm.datasource.sql.SQLParsingException;
-import io.seata.rm.datasource.sql.SQLType;
+import io.seata.sqlparser.ParametersHolder;
+import io.seata.sqlparser.SQLParsingException;
+import io.seata.sqlparser.SQLType;
+import io.seata.sqlparser.druid.oracle.OracleUpdateRecognizer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author will
@@ -115,7 +116,7 @@ public class OracleUpdateRecognizerTest {
         OracleUpdateRecognizer recognizer = new OracleUpdateRecognizer(sql, asts.get(0));
         String whereCondition = recognizer.getWhereCondition(new ParametersHolder() {
             @Override
-            public ArrayList<Object>[] getParameters() {
+            public Map<Integer,ArrayList<Object>> getParameters() {
                 return null;
             }
         }, new ArrayList<>());

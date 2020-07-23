@@ -100,9 +100,9 @@ public class ConsulRegistryServiceImpl implements RegistryService<ConsulListener
      * @return instance
      */
     static ConsulRegistryServiceImpl getInstance() {
-        if (null == instance) {
+        if (instance == null) {
             synchronized (ConsulRegistryServiceImpl.class) {
-                if (null == instance) {
+                if (instance == null) {
                     instance = new ConsulRegistryServiceImpl();
                 }
             }
@@ -147,16 +147,14 @@ public class ConsulRegistryServiceImpl implements RegistryService<ConsulListener
     @Override
     public List<InetSocketAddress> lookup(String key) throws Exception {
         final String cluster = getServiceGroup(key);
-        if (null == cluster) {
+        if (cluster == null) {
             return null;
         }
         if (!listenerMap.containsKey(cluster)) {
             //1.refresh cluster
             refreshCluster(cluster);
             //2. subscribe
-            subscribe(cluster, services -> {
-                refreshCluster(cluster, services);
-            });
+            subscribe(cluster, services -> refreshCluster(cluster, services));
         }
         return clusterAddressMap.get(cluster);
     }
@@ -167,10 +165,12 @@ public class ConsulRegistryServiceImpl implements RegistryService<ConsulListener
      * @return client
      */
     private ConsulClient getConsulClient() {
-        if (null == client) {
+        if (client == null) {
             synchronized (ConsulRegistryServiceImpl.class) {
-                if (null == client) {
-                    client = new ConsulClient(FILE_CONFIG.getConfig(FILE_CONFIG_KEY_PREFIX + SERVER_ADDR_KEY));
+                if (client == null) {
+                    String serverAddr = FILE_CONFIG.getConfig(FILE_CONFIG_KEY_PREFIX + SERVER_ADDR_KEY);
+                    InetSocketAddress inetSocketAddress = NetUtil.toInetSocketAddress(serverAddr);
+                    client = new ConsulClient(inetSocketAddress.getHostName(), inetSocketAddress.getPort());
                 }
             }
         }
@@ -183,8 +183,7 @@ public class ConsulRegistryServiceImpl implements RegistryService<ConsulListener
      * @return
      */
     private String getClusterName() {
-        String clusterConfigName = FILE_ROOT_REGISTRY + FILE_CONFIG_SPLIT_CHAR + REGISTRY_TYPE + FILE_CONFIG_SPLIT_CHAR
-            + REGISTRY_CLUSTER;
+        String clusterConfigName = String.join(FILE_CONFIG_SPLIT_CHAR, FILE_ROOT_REGISTRY, REGISTRY_TYPE, REGISTRY_CLUSTER);
         return FILE_CONFIG.getConfig(clusterConfigName, DEFAULT_CLUSTER_NAME);
     }
 
@@ -250,7 +249,7 @@ public class ConsulRegistryServiceImpl implements RegistryService<ConsulListener
      * @param cluster
      */
     private void refreshCluster(String cluster) {
-        if (null == cluster) {
+        if (cluster == null) {
             return;
         }
         Response<List<HealthService>> response = getHealthyServices(getClusterName(), -1, -1);
@@ -267,7 +266,7 @@ public class ConsulRegistryServiceImpl implements RegistryService<ConsulListener
      * @param services
      */
     private void refreshCluster(String cluster, List<HealthService> services) {
-        if (null == cluster || services == null) {
+        if (cluster == null || services == null) {
             return;
         }
         clusterAddressMap.put(cluster, services.stream()

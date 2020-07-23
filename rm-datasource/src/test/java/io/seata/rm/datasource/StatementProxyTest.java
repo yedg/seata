@@ -20,7 +20,11 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.List;
+
+import com.alibaba.druid.mock.MockResultSet;
+import com.alibaba.druid.mock.MockStatement;
 import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.util.jdbc.ResultSetMetaDataBase;
 import com.google.common.collect.Lists;
 import io.seata.rm.datasource.mock.MockConnection;
 import io.seata.rm.datasource.mock.MockDriver;
@@ -67,6 +71,10 @@ public class StatementProxyTest {
 
         Statement statement = mockDriver.createMockStatement((MockConnection)connectionProxy.getTargetConnection());
 
+        MockResultSet mockResultSet = new MockResultSet(statement);
+        ((ResultSetMetaDataBase)mockResultSet.getMetaData()).getColumns().add(new ResultSetMetaDataBase.ColumnMetaData());
+        ((MockStatement) statement).setGeneratedKeys(mockResultSet);
+
         statementProxy = new StatementProxy(connectionProxy, statement);
     }
 
@@ -85,11 +93,11 @@ public class StatementProxyTest {
         String sql = "select * from table_statment_proxy";
         Assertions.assertNotNull(statementProxy.executeQuery(sql));
         Assertions.assertDoesNotThrow(() -> statementProxy.executeUpdate(sql));
-        Assertions.assertDoesNotThrow(() -> statementProxy.executeUpdate(sql, 1));
+        Assertions.assertDoesNotThrow(() -> statementProxy.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS));
         Assertions.assertDoesNotThrow(() -> statementProxy.executeUpdate(sql, new int[]{1}));
         Assertions.assertDoesNotThrow(() -> statementProxy.executeUpdate(sql, new String[]{"id"}));
         Assertions.assertDoesNotThrow(() -> statementProxy.execute(sql));
-        Assertions.assertDoesNotThrow(() -> statementProxy.execute(sql, 1));
+        Assertions.assertDoesNotThrow(() -> statementProxy.execute(sql, Statement.RETURN_GENERATED_KEYS));
         Assertions.assertDoesNotThrow(() -> statementProxy.execute(sql, new int[]{1}));
         Assertions.assertDoesNotThrow(() -> statementProxy.execute(sql, new String[]{"id"}));
         Assertions.assertDoesNotThrow(() -> statementProxy.executeBatch());
@@ -101,8 +109,41 @@ public class StatementProxyTest {
     }
 
     @Test
-    public void testGetTargetSQL() {
+    public void testGetTargetSQL() throws SQLException{
+        String qrySql = "select * from table_statment_proxy";
+        Assertions.assertNotNull(statementProxy.executeQuery(qrySql));
         Assertions.assertNotNull(statementProxy.getTargetSQL());
+        Assertions.assertDoesNotThrow(() -> statementProxy.clearBatch());
+        Assertions.assertNull(statementProxy.getTargetSQL());
+
+        String insertSql = "insert into t(id) values (?)";
+        Assertions.assertDoesNotThrow(() -> statementProxy.executeUpdate(insertSql, new int[]{1}));
+        Assertions.assertNotNull(statementProxy.getTargetSQL());
+        Assertions.assertDoesNotThrow(() -> statementProxy.clearBatch());
+        Assertions.assertNull(statementProxy.getTargetSQL());
+
+        String updateSql = "update t set t.x=? where t.id=?";
+        Assertions.assertDoesNotThrow(() -> statementProxy.executeUpdate(updateSql, new int[]{1}));
+        Assertions.assertNotNull(statementProxy.getTargetSQL());
+        Assertions.assertDoesNotThrow(() -> statementProxy.clearBatch());
+        Assertions.assertNull(statementProxy.getTargetSQL());
+
+        statementProxy.addBatch("insert into t(id) values (1)");
+        statementProxy.addBatch("insert into t(id) values (2)");
+        Assertions.assertNotNull(statementProxy.getTargetSQL());
+        Assertions.assertDoesNotThrow(() -> statementProxy.clearBatch());
+        Assertions.assertNull(statementProxy.getTargetSQL());
+
+        statementProxy.addBatch("update t set t.x = x+1 where t.id = 1");
+        statementProxy.addBatch("update t set t.x = x+1 where t.id = 2");
+        Assertions.assertNotNull(statementProxy.getTargetSQL());
+        Assertions.assertDoesNotThrow(() -> statementProxy.clearBatch());
+        Assertions.assertNull(statementProxy.getTargetSQL());
+
+        statementProxy.addBatch("delete from t where t.id = 1");
+        statementProxy.addBatch("delete from t where t.id = 2");
+        Assertions.assertNotNull(statementProxy.getTargetSQL());
+        Assertions.assertDoesNotThrow(() -> statementProxy.clearBatch());
     }
 
     @Test
@@ -157,7 +198,7 @@ public class StatementProxyTest {
 
     @Test
     public void testMoreResults() throws SQLException {
-        Assertions.assertEquals(false, statementProxy.getMoreResults());
+        Assertions.assertFalse(statementProxy.getMoreResults());
     }
 
     @Test
@@ -191,7 +232,7 @@ public class StatementProxyTest {
 
     @Test
     public void testGetMoreResults() throws SQLException {
-        Assertions.assertEquals(false, statementProxy.getMoreResults(1));
+        Assertions.assertFalse(statementProxy.getMoreResults(1));
     }
 
     @Test
@@ -212,7 +253,7 @@ public class StatementProxyTest {
     @Test
     public void testPoolable() throws SQLException {
         statementProxy.setPoolable(true);
-        Assertions.assertEquals(true, statementProxy.isPoolable());
+        Assertions.assertTrue(statementProxy.isPoolable());
     }
 
     @Test
@@ -224,7 +265,7 @@ public class StatementProxyTest {
     @Test
     public void testWrap() throws SQLException {
         Assertions.assertDoesNotThrow(() -> statementProxy.unwrap(String.class));
-        Assertions.assertEquals(false, statementProxy.isWrapperFor(String.class));
+        Assertions.assertFalse(statementProxy.isWrapperFor(String.class));
     }
 
 }

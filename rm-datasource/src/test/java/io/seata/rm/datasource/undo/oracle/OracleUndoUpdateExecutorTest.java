@@ -15,18 +15,19 @@
  */
 package io.seata.rm.datasource.undo.oracle;
 
-import io.seata.rm.datasource.sql.SQLType;
 import io.seata.rm.datasource.sql.struct.Row;
 import io.seata.rm.datasource.sql.struct.TableMeta;
 import io.seata.rm.datasource.sql.struct.TableRecords;
 import io.seata.rm.datasource.undo.BaseExecutorTest;
 import io.seata.rm.datasource.undo.SQLUndoLog;
+import io.seata.sqlparser.SQLType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -34,12 +35,27 @@ import java.util.List;
  */
 public class OracleUndoUpdateExecutorTest extends BaseExecutorTest {
 
-    private static OracleUndoUpdateExecutor executor;
-    
-    @BeforeAll
-    public static void init(){
+    @Test
+    public void buildUndoSQLByUpperCase() {
+        OracleUndoUpdateExecutor executor = upperCaseSQL();
+
+        String sql = executor.buildUndoSQL();
+        Assertions.assertNotNull(sql);
+        Assertions.assertTrue(sql.contains("UPDATE"));
+        Assertions.assertTrue(sql.contains("ID"));
+        Assertions.assertTrue(sql.contains("AGE"));
+        Assertions.assertTrue(sql.contains("TABLE_NAME"));
+    }
+
+    @Test
+    public void getUndoRows() {
+        OracleUndoUpdateExecutor executor = upperCaseSQL();
+        Assertions.assertEquals(executor.getUndoRows(), executor.getSqlUndoLog().getBeforeImage());
+    }
+
+    private OracleUndoUpdateExecutor upperCaseSQL() {
         TableMeta tableMeta = Mockito.mock(TableMeta.class);
-        Mockito.when(tableMeta.getPkName()).thenReturn("ID");
+        Mockito.when(tableMeta.getPrimaryKeyOnlyName()).thenReturn(Arrays.asList(new String[]{"ID"}));
         Mockito.when(tableMeta.getTableName()).thenReturn("TABLE_NAME");
 
         TableRecords beforeImage = new TableRecords();
@@ -77,22 +93,7 @@ public class OracleUndoUpdateExecutorTest extends BaseExecutorTest {
         sqlUndoLog.setBeforeImage(beforeImage);
         sqlUndoLog.setAfterImage(afterImage);
 
-        executor = new OracleUndoUpdateExecutor(sqlUndoLog);
-    }
-
-    @Test
-    public void buildUndoSQL() {
-        String sql = executor.buildUndoSQL();
-        Assertions.assertNotNull(sql);
-        Assertions.assertTrue(sql.contains("UPDATE"));
-        Assertions.assertTrue(sql.contains("\"ID\""));
-        Assertions.assertTrue(sql.contains("\"AGE\""));
-        Assertions.assertTrue(sql.contains("\"TABLE_NAME\""));
-    }
-
-    @Test
-    public void getUndoRows() {
-        Assertions.assertEquals(executor.getUndoRows(), executor.getSqlUndoLog().getBeforeImage());
+        return new OracleUndoUpdateExecutor(sqlUndoLog);
     }
 
 }

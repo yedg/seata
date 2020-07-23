@@ -15,13 +15,16 @@
  */
 package io.seata.spring.util;
 
-import java.lang.reflect.Method;
-
 import io.seata.rm.tcc.api.TwoPhaseBusinessAction;
 import io.seata.rm.tcc.remoting.Protocols;
 import io.seata.rm.tcc.remoting.RemotingDesc;
+import io.seata.rm.tcc.remoting.RemotingParser;
 import io.seata.rm.tcc.remoting.parser.DefaultRemotingParser;
+import io.seata.spring.tcc.TccActionInterceptor;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.context.ApplicationContext;
+
+import java.lang.reflect.Method;
 
 /**
  * parser TCC bean
@@ -29,6 +32,9 @@ import org.springframework.context.ApplicationContext;
  * @author zhangsen
  */
 public class TCCBeanParserUtils {
+
+    private TCCBeanParserUtils() {
+    }
 
     /**
      * is auto proxy TCC bean
@@ -39,11 +45,11 @@ public class TCCBeanParserUtils {
      * @return boolean boolean
      */
     public static boolean isTccAutoProxy(Object bean, String beanName, ApplicationContext applicationContext) {
-        RemotingDesc remotingDesc = null;
         boolean isRemotingBean = parserRemotingServiceInfo(bean, beanName);
+        //get RemotingBean description
+        RemotingDesc remotingDesc = DefaultRemotingParser.get().getRemotingBeanDesc(beanName);
         //is remoting bean
         if (isRemotingBean) {
-            remotingDesc = DefaultRemotingParser.get().getRemotingBeanDesc(beanName);
             if (remotingDesc != null && remotingDesc.getProtocol() == Protocols.IN_JVM) {
                 //LocalTCC
                 return isTccProxyTargetBean(remotingDesc);
@@ -52,8 +58,6 @@ public class TCCBeanParserUtils {
                 return false;
             }
         } else {
-            //get RemotingBean description
-            remotingDesc = DefaultRemotingParser.get().getRemotingBeanDesc(beanName);
             if (remotingDesc == null) {
                 //check FactoryBean
                 if (isRemotingFactoryBean(bean, beanName, applicationContext)) {
@@ -82,7 +86,7 @@ public class TCCBeanParserUtils {
             return false;
         }
         //the FactoryBean of proxy bean
-        String factoryBeanName = new StringBuilder().append("&").append(beanName).toString();
+        String factoryBeanName = "&" + beanName;
         Object factoryBean = null;
         if (applicationContext != null && applicationContext.containsBean(factoryBeanName)) {
             factoryBean = applicationContext.getBean(factoryBeanName);
@@ -101,7 +105,7 @@ public class TCCBeanParserUtils {
      * @param remotingDesc the remoting desc
      * @return boolean boolean
      */
-    protected static boolean isTccProxyTargetBean(RemotingDesc remotingDesc) {
+    public static boolean isTccProxyTargetBean(RemotingDesc remotingDesc) {
         if (remotingDesc == null) {
             return false;
         }
@@ -109,7 +113,7 @@ public class TCCBeanParserUtils {
         boolean isTccClazz = false;
         Class<?> tccInterfaceClazz = remotingDesc.getInterfaceClass();
         Method[] methods = tccInterfaceClazz.getMethods();
-        TwoPhaseBusinessAction twoPhaseBusinessAction = null;
+        TwoPhaseBusinessAction twoPhaseBusinessAction;
         for (Method method : methods) {
             twoPhaseBusinessAction = method.getAnnotation(TwoPhaseBusinessAction.class);
             if (twoPhaseBusinessAction != null) {
@@ -138,8 +142,9 @@ public class TCCBeanParserUtils {
      * @return if sofa:service, sofa:reference, dubbo:reference, dubbo:service return true, else return false
      */
     protected static boolean parserRemotingServiceInfo(Object bean, String beanName) {
-        if (DefaultRemotingParser.get().isRemoting(bean, beanName)) {
-            return null != DefaultRemotingParser.get().parserRemotingServiceInfo(bean, beanName);
+        RemotingParser remotingParser = DefaultRemotingParser.get().isRemoting(bean, beanName);
+        if (remotingParser != null) {
+            return DefaultRemotingParser.get().parserRemotingServiceInfo(bean, beanName, remotingParser) != null;
         }
         return false;
     }
@@ -152,5 +157,22 @@ public class TCCBeanParserUtils {
      */
     public static RemotingDesc getRemotingDesc(String beanName) {
         return DefaultRemotingParser.get().getRemotingBeanDesc(beanName);
+    }
+
+    /**
+     * Create a proxy bean for tcc service
+     *
+     * @param interfaceClass
+     * @param fieldValue
+     * @param actionInterceptor
+     * @return
+     */
+    public static <T> T createProxy(Class<T> interfaceClass, Object fieldValue, TccActionInterceptor actionInterceptor) {
+        ProxyFactory factory = new ProxyFactory();
+        factory.setTarget(fieldValue);
+        factory.setInterfaces(interfaceClass);
+        factory.addAdvice(actionInterceptor);
+
+        return (T) factory.getProxy();
     }
 }

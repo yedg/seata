@@ -32,9 +32,13 @@ import io.netty.util.internal.PlatformDependent;
 import io.seata.config.Configuration;
 import io.seata.config.ConfigurationFactory;
 import io.seata.core.constants.ConfigurationKeys;
+import io.seata.core.rpc.TransportProtocolType;
+import io.seata.core.rpc.TransportServerType;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.seata.core.constants.DefaultValues.DEFAULT_TRANSPORT_HEARTBEAT;
 
 /**
  * The type Netty base config.
@@ -91,6 +95,7 @@ public class NettyBaseConfig {
 
     private static final int READIDLE_BASE_WRITEIDLE = 3;
 
+
     /**
      * The constant MAX_WRITE_IDLE_SECONDS.
      */
@@ -111,7 +116,7 @@ public class NettyBaseConfig {
         String workerThreadSize = CONFIG.getConfig(ConfigurationKeys.WORKER_THREAD_SIZE);
         if (StringUtils.isNotBlank(workerThreadSize) && StringUtils.isNumeric(workerThreadSize)) {
             WORKER_THREAD_SIZE = Integer.parseInt(workerThreadSize);
-        } else if (null != WorkThreadMode.getModeByName(workerThreadSize)) {
+        } else if (WorkThreadMode.getModeByName(workerThreadSize) != null) {
             WORKER_THREAD_SIZE = WorkThreadMode.getModeByName(workerThreadSize).getValue();
         } else {
             WORKER_THREAD_SIZE = WorkThreadMode.Default.getValue();
@@ -160,7 +165,7 @@ public class NettyBaseConfig {
             default:
                 throw new IllegalArgumentException("unsupported.");
         }
-        boolean enableHeartbeat = CONFIG.getBoolean(ConfigurationKeys.TRANSPORT_HEARTBEAT, false);
+        boolean enableHeartbeat = CONFIG.getBoolean(ConfigurationKeys.TRANSPORT_HEARTBEAT, DEFAULT_TRANSPORT_HEARTBEAT);
         if (enableHeartbeat) {
             MAX_WRITE_IDLE_SECONDS = DEFAULT_WRITE_IDLE_SECONDS;
         } else {
@@ -179,7 +184,7 @@ public class NettyBaseConfig {
     /**
      * The enum Work thread mode.
      */
-    enum WorkThreadMode {
+    public enum WorkThreadMode {
 
         /**
          * Auto work thread mode.

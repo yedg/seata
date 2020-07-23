@@ -33,11 +33,4 @@ public class OracleKeywordCheckerTest {
         Assertions.assertNotNull(keywordChecker);
     }
 
-    @Test
-    public void testCheckAndReplate() {
-        KeywordChecker keywordChecker = KeywordCheckerFactory.getKeywordChecker(JdbcConstants.ORACLE);
-        Assertions.assertEquals(null, keywordChecker.checkAndReplace(null));
-        Assertions.assertEquals("undo_log", keywordChecker.checkAndReplace("undo_log"));
-        Assertions.assertEquals("TABLE", keywordChecker.checkAndReplace("TABLE"));
-    }
 }

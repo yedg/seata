@@ -19,13 +19,15 @@ import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.dialect.oracle.ast.expr.OracleArgumentExpr;
-import io.seata.rm.datasource.ParametersHolder;
-import io.seata.rm.datasource.sql.SQLType;
+import io.seata.sqlparser.ParametersHolder;
+import io.seata.sqlparser.SQLType;
+import io.seata.sqlparser.druid.oracle.OracleDeleteRecognizer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author will
@@ -69,7 +71,7 @@ public class OracleDeleteRecognizerTest {
         OracleDeleteRecognizer recognizer = new OracleDeleteRecognizer(sql, asts.get(0));
         String whereCondition = recognizer.getWhereCondition(new ParametersHolder() {
             @Override
-            public ArrayList<Object>[] getParameters() {
+            public Map<Integer,ArrayList<Object>> getParameters() {
                 return null;
             }
         }, new ArrayList<>());
@@ -83,10 +85,12 @@ public class OracleDeleteRecognizerTest {
         recognizer = new OracleDeleteRecognizer(sql, asts.get(0));
         whereCondition = recognizer.getWhereCondition(new ParametersHolder() {
             @Override
-            public ArrayList<Object>[] getParameters() {
+            public Map<Integer,ArrayList<Object>> getParameters() {
                 ArrayList<Object> idParam = new ArrayList<>();
                 idParam.add(1);
-                return new ArrayList[] {idParam};
+                Map result = new HashMap();
+                result.put(1, idParam);
+                return result;
             }
         }, new ArrayList<>());
 
@@ -98,10 +102,12 @@ public class OracleDeleteRecognizerTest {
         recognizer = new OracleDeleteRecognizer(sql, asts.get(0));
         whereCondition = recognizer.getWhereCondition(new ParametersHolder() {
             @Override
-            public ArrayList<Object>[] getParameters() {
+            public Map<Integer,ArrayList<Object>> getParameters() {
                 ArrayList<Object> idParam = new ArrayList<>();
                 idParam.add(1);
-                return new ArrayList[] {idParam};
+                Map result = new HashMap();
+                result.put(1, idParam);
+                return result;
             }
         }, new ArrayList<>());
 
@@ -113,12 +119,15 @@ public class OracleDeleteRecognizerTest {
         recognizer = new OracleDeleteRecognizer(sql, asts.get(0));
         whereCondition = recognizer.getWhereCondition(new ParametersHolder() {
             @Override
-            public ArrayList<Object>[] getParameters() {
+            public Map<Integer,ArrayList<Object>> getParameters() {
                 ArrayList<Object> idParam = new ArrayList<>();
                 idParam.add(1);
                 ArrayList<Object> idParam2 = new ArrayList<>();
                 idParam.add(2);
-                return new ArrayList[] {idParam, idParam2};
+                Map result = new HashMap();
+                result.put(1, idParam);
+                result.put(2, idParam2);
+                return result;
             }
         }, new ArrayList<>());
         //test for sql with in
@@ -132,8 +141,8 @@ public class OracleDeleteRecognizerTest {
             deleteAst.setWhere(new OracleArgumentExpr());
             new OracleDeleteRecognizer(s, deleteAst).getWhereCondition(new ParametersHolder() {
                 @Override
-                public ArrayList<Object>[] getParameters() {
-                    return new ArrayList[0];
+                public Map<Integer,ArrayList<Object>> getParameters() {
+                    return new HashMap<>();
                 }
             }, new ArrayList<>());
         });
